@@ -41,10 +41,10 @@
 .listings .item .title {
     display: inline-block;
     width: 100%;
-    color: #2A395F;
+    color: #023e8a;
     font-weight: 800;
     margin-top: 5px;
-    text-decoration: none;
+    text-decoration: underline;
 }
 
 /* Target the titles within the listings */
@@ -172,15 +172,6 @@ label[for="show-all-years"] {
 .legend h3 {
     margin-top: 0;
     font-size: 1em;
-}
-
-
-
-/* Correct media query at the root level */
-@media only screen and (max-width: 500px) {
-    .legend {
-        display: none;
-    }
 }
 
 
