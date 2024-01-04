@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title></title>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link href='https://api.mapbox.com/mapbox-assembly/v0.24.0/assembly.min.css' rel='stylesheet'>
+    <script src='https://api.mapbox.com/mapbox-assembly/v0.24.0/assembly.js'></script>
+    <script src="https://unpkg.com/supercluster"></script>
+<script src='https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js'></script>
+<link href='https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.2.0/mapbox-gl-geocoder.min.js'></script>
+    <link rel='stylesheet'
+    href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.2.0/mapbox-gl-geocoder.css'
+    type='text/css' />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/geojson/0.5.0/geojson.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@5/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.15/lodash.min.js"></script>
+    <script src='https://npmcdn.com/csv2geojson@latest/csv2geojson.js'></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <link rel='stylesheet' href="style.css" />
+    <style>
+        /* Existing CSS */
+body { margin: 0; padding: 0; }
+#legend, #legendManual {
+    position: fixed;
+    top: 30%; /* Center the popup vertically */
+    left: 50%; /* Center the popup horizontally */
+    transform: translate(-50%, -50%); /* Center the popup both vertically and horizontally */
+    background: rgba(255, 255, 255, 0.9); /* Adjust transparency */
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    font-size: 0.9em;
+    max-width: 250px;
+    display: none; /* Hide the popup by default */
+}
+
+/* ... (rest of your existing CSS) ... */
+
+/* Hide the legend button by default */
+.legend-button {
+    display: none;
+    /* ... (other existing styles for the legend button) ... */
+    font-size: 16px;
+    color: white;
+    background-color: #448EE4;
+    border: none;
+    padding: 10px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10;
+    transition: background-color 0.3s;
+}
+
+/* CSS media query for screens with a maximum width of 600 pixels */
+@media only screen and (max-width: 600px) {
+    .legend-button {
+        display: block;
+        /* ... (other existing styles for the legend button) ... */
+        font-size: 16px;
+        color: white;
+        background-color: #448EE4;
+        border: none;
+        padding: 10px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 10;
+        transition: background-color 0.3s;
+    }
+}
+
+/* ... (rest of your existing CSS, if any) ... */
+    </style>
+    
+</head>
+
+<body>
+
+<body>
+
+    <div class='flex-parent viewport-full relative scroll-hidden'>
+        <div class='flex-child w-full w360-ml absolute static-ml left bottom'>
+            <div class='flex-parent flex-parent--column viewport-third bg-white'>
+                <div class='flex-child flex-child--grow'>
+                    <div id="sidebarA"
+                        class="flex-parent flex-parent--column-ml flex-parent--center-main theme py12 px12 ">
+                        <h3 id='title' class='txt-l-ml txt-m txt-bold mb6 mr0-ml mr24 align-center block'>
+                        </h3>
+                        <p id='description' class='txt-s py12 none block-ml'>
+                        </p>
+                        <div class="flex-parent flex-parent--center-main relative-ml absolute right top mt0-ml mt6">
+                            <button id='filterResults' class='txt-bold btn btn--stroke mr0-ml mr12 px18-ml px6'>
+                                <svg class='icon inline-block align-middle h24 w24'>
+                                    <use xlink:href='#icon-filter' /></svg>
+                                <p class="inline-block-ml align-middle remove none">Show Filters</p>
+                            </button>
+                        </div>
+
+                    </div>
+                    <div id="listings" class="flex-child viewport-twothirds py12 px12 listings scroll-auto"></div>
+
+                </div>
+            </div>
+        </div>
+        <div class='flex-child flex-child--grow w-auto viewport-full-ml viewport-twothirds' id='map'>
+        </div>
+
+
+        
+        <div id='modal' class='absolute top right bottom left scroll-auto hide-visually flex-parent flex-parent--center-main mt120-ml'>
+            <div class='pt36'>
+                <div class='flex-child bg-white round relative scroll-auto'>                 
+                            <use xlink:href='#icon-close'></use>
+                        </svg>
+                    </button>
+                    <div class='px24 py24'>
+                        <form id="filters"></form>
+                        <div class='align-center py12'></div>
+                        <div class="flex-parent flex-parent--center-main">
+                            <button id="removeFilters" class="btn reset-button">Reset Filters</button>
+                            <button id="removeFilters2" class="btn apply-button">Apply</button>
+                            
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        
+        
+        </div>
+    </div>
+    
+    </div>
+    <div id="legend" class="legend">
+        <h3>Legend</h3>
+        <div class="category"><span class="color-box" style="background-color: #05668d;"></span>Visit Diplomacy (Defence)</div>
+        <div class="category"><span class="color-box" style="background-color: #028090;"></span>Military Medical Diplomacy</div>
+        <div class="category"><span class="color-box" style="background-color: #00a896;"></span>Training</div>
+        <div class="category"><span class="color-box" style="background-color: #57cc99;"></span>Cultural Diplomacy (Defence)</div>
+        <div class="category"><span class="color-box" style="background-color: #fe7f2d;"></span>Sports Diplomacy (Defence)</div>
+        <div class="category"><span class="color-box" style="background-color: #fcca46;"></span>HADR – Disaster Response</div>
+        <div class="category"><span class="color-box" style="background-color: #cbf3f0;"></span>Defence Cooperation</div>
+        <div class="category"><span class="color-box" style="background-color: #4cc9f0;"></span>Military Exercises</div>
+        <div class="category"><span class="color-box" style="background-color: #4361ee;"></span>MIL-POL Engagement</div>
+        <div class="category"><span class="color-box" style="background-color: #3a0ca3;"></span>Arms Control</div>
+        <div class="category"><span class="color-box" style="background-color: #7209b7;"></span>Maritime Security</div>
+        <div class="category"><span class="color-box" style="background-color: #f72585;"></span>Defence Infrastructure</div>
+    </div>
+    </div>
+
+
+    <button id="helpButton" class="help-button">Help</button>
+
+    <div id="helpManual" class="help-manual" style="display: none;">
+        <h2><strong>Help Manual</strong></h2>
+        
+        <p><strong>Right Mouse Button:</strong> Use your right mouse button to change the pitch/yaw on the map.</p>
+        <p><strong>Filter Button:</strong> Changes what markers are displayed. You can reset the display with the "Clear Filter" button.</p>
+        <p><strong>Click Entries:</strong> Clicking on the entries in the left sidebar will take you to the corresponding marker on the map.</p>
+        <p><strong>Map Navigation:</strong> Use the zoom controls to zoom in or out. Drag the map to pan around.</p>
+        <button id="closeHelp" class="close-help">Close</button>
+    </div>
+
+    <button id="legendButton" class="legend-button">Legend</button>
+
+    <div id="legendManual" class="legend-manual" style="display: none;">
+        <div id="legend2" class="legend2">
+            <h3>Legend</h3>
+            <div class="category"><span class="color-box" style="background-color: #05668d;"></span>Visit Diplomacy (Defence)</div>
+            <div class="category"><span class="color-box" style="background-color: #028090;"></span>Military Medical Diplomacy</div>
+            <div class="category"><span class="color-box" style="background-color: #00a896;"></span>Training</div>
+            <div class="category"><span class="color-box" style="background-color: #57cc99;"></span>Cultural Diplomacy (Defence)</div>
+            <div class="category"><span class="color-box" style="background-color: #fe7f2d;"></span>Sports Diplomacy (Defence)</div>
+            <div class="category"><span class="color-box" style="background-color: #fcca46;"></span>HADR – Disaster Response</div>
+            <div class="category"><span class="color-box" style="background-color: #cbf3f0;"></span>Defence Cooperation</div>
+            <div class="category"><span class="color-box" style="background-color: #4cc9f0;"></span>Military Exercises</div>
+            <div class="category"><span class="color-box" style="background-color: #4361ee;"></span>MIL-POL Engagement</div>
+            <div class="category"><span class="color-box" style="background-color: #3a0ca3;"></span>Arms Control</div>
+            <div class="category"><span class="color-box" style="background-color: #7209b7;"></span>Maritime Security</div>
+            <div class="category"><span class="color-box" style="background-color: #f72585;"></span>Defence Infrastructure</div>
+            <button id="closeLegend" class="close-legend">Close</button>
+        </div>
+    </div>
+
+    
+</div>
+</body>
+
+<div class='session' id='sliderbar'>
+    <h2>Year: 
+    <label id='active-year'>2018</label></h2>
+    <input id='slider' class='rounded' type='range' min='2018' max='2024' step='1' value='2018' />
+    <label for="show-all-years">Show All Years</label>
+    <input type="checkbox" id="show-all-years">
+<script>
+
+</script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+
+</html>
